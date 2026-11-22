@@ -1,1 +1,49 @@
 
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pixel Fish</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+
+<body>
+
+    <main class="game-container">
+
+        <h1>PIXEL FISH</h1>
+
+        <div class="score">
+            Pontuação: <span id="score">0</span>
+        </div>
+
+        <div class="game-area">
+
+            <canvas id="gameCanvas" width="400" height="600"></canvas>
+
+            <div id="startScreen" class="screen">
+                <h2>PIXEL FISH</h2>
+                <p>Prepare-se para mergulhar!</p>
+                <button id="startButton">JOGAR</button>
+            </div>
+
+            <div id="gameOverScreen" class="screen hidden">
+                <h2>FIM DE JOGO!</h2>
+                <p>Sua pontuação: <span id="finalScore">0</span></p>
+                <button id="restartButton">JOGAR NOVAMENTE</button>
+            </div>
+
+        </div>
+
+        <p class="instructions">
+            Pressione ESPAÇO ou clique para nadar!
+        </p>
+
+    </main>
+
+    <script src="script.js"></script>
+
+</body>
+</html>
+
