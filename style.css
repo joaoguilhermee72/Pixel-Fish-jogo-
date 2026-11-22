@@ -18,6 +18,21 @@ body {
     align-items: center;
 }
 
+/* RECORD E PONTUAÇÃO */
+
+.score {
+    color: #ffffff;
+    font-size: 20px;
+    margin-bottom: 5px;
+}
+
+.best-score {
+    color: #ffe66d;
+    font-size: 15px;
+    margin-bottom: 12px;
+    text-shadow: 2px 2px #805b18;
+}
+
 /* CONTAINER PRINCIPAL */
 
 .game-container {
