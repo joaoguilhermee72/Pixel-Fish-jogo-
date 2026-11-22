@@ -1,703 +1,293 @@
 
-/* =========================
-   PIXEL FISH
-   GAME VERSION 1.1
-========================= */
-
-// ELEMENTOS HTML
-
 const canvas = document.getElementById("gameCanvas");
 const ctx = canvas.getContext("2d");
-
-const scoreElement = document.getElementById("score");
-const bestScoreElement = document.getElementById("bestScore");
-const finalScoreElement = document.getElementById("finalScore");
 
 const startScreen = document.getElementById("startScreen");
 const gameOverScreen = document.getElementById("gameOverScreen");
 
 const startButton = document.getElementById("startButton");
 const restartButton = document.getElementById("restartButton");
-const recordMessage = document.getElementById("recordMessage");
 
-// CONFIGURAÇÕES
+const scoreElement = document.getElementById("score");
+const bestScoreElement = document.getElementById("bestScore");
+const finalScoreElement = document.getElementById("finalScore");
+
+let fish;
+let obstacles;
+let score;
+let bestScore = Number(localStorage.getItem("pixelFishBest")) || 0;
+
+let gameRunning = false;
+let animationId = null;
+let frame = 0;
 
 const gravity = 0.34;
 const jumpForce = -6.5;
-
 const obstacleSpeed = 3.6;
 const obstacleGap = 135;
 const obstacleWidth = 55;
 
-let gameRunning = false;
-let animationId;
-
-let fish;
-let obstacles = [];
-let bubbles = [];
-let particles = [];
-
-let score = 0;
-let fishAnimation = 0;
-
-// RECORDE SALVO NO NAVEGADOR
-
-let bestScore = 0;
-
-try {
-    bestScore = Number(
-        localStorage.getItem("pixelFishRecord")
-    ) || 0;
-} catch (error) {
-    bestScore = 0;
-}
+const fishSize = 30;
 
 bestScoreElement.textContent = bestScore;
 
-
-/* =========================
-   CRIANDO O PEIXE
-========================= */
-
 function createFish() {
-
-    fish = {
+    return {
         x: 90,
-        y: 280,
-        width: 30,
-        height: 22,
-        velocity: 0
+        y: canvas.height / 2,
+        velocity: 0,
+        size: fishSize
     };
-
 }
 
-
-/* =========================
-   DESENHANDO O PEIXE
-========================= */
-
-function drawFish() {
-
-    const x = Math.round(fish.x);
-    const y = Math.round(fish.y);
-
-    fishAnimation++;
-
-    // CORPO
-
-    ctx.fillStyle = "#ffb52e";
-
-    ctx.fillRect(x, y + 5, 20, 12);
-    ctx.fillRect(x + 5, y, 18, 22);
-
-    // CAUDA ANIMADA
-
-    ctx.fillStyle = "#e77d20";
-
-    if (Math.floor(fishAnimation / 8) % 2 === 0) {
-        ctx.fillRect(x - 7, y + 7, 7, 8);
-    } else {
-        ctx.fillRect(x - 9, y + 4, 9, 8);
+function startGame() {
+    if (animationId !== null) {
+        cancelAnimationFrame(animationId);
     }
 
-    // NADDEIRA
+    fish = createFish();
+    obstacles = [];
+    score = 0;
+    frame = 0;
 
-    ctx.fillStyle = "#e77d20";
-    ctx.fillRect(x + 10, y + 15, 7, 5);
+    scoreElement.textContent = score;
 
-    // OLHO
+    startScreen.style.display = "none";
+    gameOverScreen.style.display = "none";
 
-    ctx.fillStyle = "#ffffff";
-    ctx.fillRect(x + 17, y + 4, 5, 5);
+    gameRunning = true;
 
-    ctx.fillStyle = "#111111";
-    ctx.fillRect(x + 19, y + 5, 2, 3);
-
+    jump();
+    gameLoop();
 }
 
+function jump() {
+    if (!gameRunning) return;
 
-/* =========================
-   CRIANDO AS BOLHAS
-========================= */
-
-function createBubbles() {
-
-    bubbles = [];
-
-    for (let i = 0; i < 25; i++) {
-
-        bubbles.push({
-            x: Math.random() * 400,
-            y: Math.random() * 600,
-            size: Math.random() * 4 + 2,
-            speed: Math.random() * 0.8 + 0.3
-        });
-
-    }
-
+    fish.velocity = jumpForce;
 }
-
-
-/* =========================
-   ATUALIZANDO AS BOLHAS
-========================= */
-
-function updateBubbles() {
-
-    bubbles.forEach(bubble => {
-
-        bubble.y -= bubble.speed;
-
-        if (bubble.y < -10) {
-
-            bubble.y = 610;
-            bubble.x = Math.random() * 400;
-
-        }
-
-    });
-
-}
-
-
-/* =========================
-   DESENHANDO O FUNDO
-========================= */
-
-function drawBackground() {
-
-    const gradient = ctx.createLinearGradient(
-        0, 0, 0, 600
-    );
-
-    gradient.addColorStop(0, "#0878a5");
-    gradient.addColorStop(1, "#032b54");
-
-    ctx.fillStyle = gradient;
-    ctx.fillRect(0, 0, 400, 600);
-
-    // LUZES DO OCEANO
-
-    ctx.fillStyle = "rgba(90, 220, 255, 0.07)";
-
-    ctx.fillRect(40, 0, 30, 570);
-    ctx.fillRect(250, 0, 45, 570);
-
-    // BOLHAS
-
-    ctx.strokeStyle = "rgba(255, 255, 255, 0.45)";
-    ctx.lineWidth = 2;
-
-    bubbles.forEach(bubble => {
-
-        ctx.beginPath();
-
-        ctx.arc(
-            bubble.x,
-            bubble.y,
-            bubble.size,
-            0,
-            Math.PI * 2
-        );
-
-        ctx.stroke();
-
-    });
-
-    // FUNDO DO MAR
-
-    ctx.fillStyle = "#07543f";
-    ctx.fillRect(0, 570, 400, 30);
-
-    ctx.fillStyle = "#0b8052";
-
-    for (let i = 0; i < 400; i += 25) {
-
-        ctx.fillRect(i, 565, 8, 5);
-
-    }
-
-}
-
-
-/* =========================
-   CRIANDO OS OBSTÁCULOS
-========================= */
 
 function createObstacle() {
+    const minHeight = 50;
+    const maxHeight = canvas.height - obstacleGap - 50;
 
-    const gapPosition =
-        Math.floor(Math.random() * 250) + 150;
+    const topHeight =
+        Math.random() * (maxHeight - minHeight) + minHeight;
 
     obstacles.push({
-
-        x: 400,
-
-        topHeight: gapPosition - obstacleGap / 2,
-
-        bottomY: gapPosition + obstacleGap / 2,
-
+        x: canvas.width,
+        topHeight: topHeight,
+        bottomY: topHeight + obstacleGap,
         passed: false
-
     });
-
 }
 
+function drawBackground() {
+    ctx.fillStyle = "#75d5e8";
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-/* =========================
-   DESENHANDO AS ALGAS
-========================= */
+    // Bolhas
+    for (let i = 0; i < 12; i++) {
+        const x = (i * 97 + frame * 0.4) % canvas.width;
+        const y = (i * 83 + frame * 0.7) % canvas.height;
+
+        ctx.fillStyle = "rgba(255,255,255,0.35)";
+        ctx.beginPath();
+        ctx.arc(x, y, 3 + (i % 4), 0, Math.PI * 2);
+        ctx.fill();
+    }
+}
+
+function drawFish() {
+    ctx.save();
+
+    ctx.translate(fish.x, fish.y);
+
+    const rotation = Math.min(
+        Math.max(fish.velocity * 0.04, -0.4),
+        0.5
+    );
+
+    ctx.rotate(rotation);
+
+    // Cauda
+    ctx.fillStyle = "#ff9f43";
+    ctx.fillRect(-20, -5, 9, 12);
+    ctx.fillRect(-25, -9, 7, 7);
+    ctx.fillRect(-25, 4, 7, 7);
+
+    // Corpo
+    ctx.fillStyle = "#ffbd59";
+    ctx.fillRect(-13, -12, 25, 24);
+    ctx.fillRect(-8, -16, 16, 4);
+    ctx.fillRect(-8, 12, 16, 4);
+
+    // Nadadeira
+    ctx.fillStyle = "#f07c38";
+    ctx.fillRect(-2, 5, 10, 7);
+    ctx.fillRect(1, 2, 5, 3);
+
+    // Olho
+    ctx.fillStyle = "#ffffff";
+    ctx.fillRect(5, -8, 8, 9);
+
+    ctx.fillStyle = "#222222";
+    ctx.fillRect(9, -6, 4, 5);
+
+    ctx.restore();
+}
 
 function drawObstacles() {
-
     obstacles.forEach(obstacle => {
+        const bottomHeight = canvas.height - obstacle.bottomY;
 
-        const topHeight = obstacle.topHeight;
-        const bottomHeight = 570 - obstacle.bottomY;
-
-        // ALGAS SUPERIORES
-
-        ctx.fillStyle = "#126b43";
-
+        // Obstáculo superior
+        ctx.fillStyle = "#267d53";
         ctx.fillRect(
             obstacle.x,
             0,
             obstacleWidth,
-            topHeight
+            obstacle.topHeight
         );
 
-        // ALGAS INFERIORES
-
-        ctx.fillRect(
-            obstacle.x,
-            obstacle.bottomY,
-            obstacleWidth,
-            bottomHeight
-        );
-
-        // DETALHES SUPERIORES
-
-        ctx.fillStyle = "#31c76b";
-
-        ctx.fillRect(
-            obstacle.x + 10,
-            0,
-            7,
-            topHeight
-        );
-
-        ctx.fillRect(
-            obstacle.x + 35,
-            0,
-            5,
-            topHeight
-        );
-
-        // DETALHES INFERIORES
-
-        ctx.fillRect(
-            obstacle.x + 10,
-            obstacle.bottomY,
-            7,
-            bottomHeight
-        );
-
-        ctx.fillRect(
-            obstacle.x + 35,
-            obstacle.bottomY,
-            5,
-            bottomHeight
-        );
-
-        // PONTAS DAS ALGAS
-
-        ctx.fillStyle = "#16834b";
-
+        ctx.fillStyle = "#42b875";
         ctx.fillRect(
             obstacle.x - 5,
-            topHeight - 8,
-            15,
-            8
+            obstacle.topHeight - 15,
+            obstacleWidth + 10,
+            15
         );
 
+        // Obstáculo inferior
+        ctx.fillStyle = "#267d53";
         ctx.fillRect(
-            obstacle.x + 35,
-            bottomY + obstacle.bottomY - 570,
-            15,
-            8
+            obstacle.x,
+            obstacle.bottomY,
+            obstacleWidth,
+            bottomHeight
         );
 
+        ctx.fillStyle = "#42b875";
+        ctx.fillRect(
+            obstacle.x - 5,
+            obstacle.bottomY,
+            obstacleWidth + 10,
+            15
+        );
     });
-
 }
 
+function updateFish() {
+    fish.velocity += gravity;
+    fish.y += fish.velocity;
 
-/* =========================
-   MOVIMENTAÇÃO DOS OBSTÁCULOS
-========================= */
+    if (
+        fish.y + fish.size / 2 >= canvas.height ||
+        fish.y - fish.size / 2 <= 0
+    ) {
+        endGame();
+    }
+}
 
 function updateObstacles() {
+    if (frame % 95 === 0) {
+        createObstacle();
+    }
 
     obstacles.forEach(obstacle => {
-
         obstacle.x -= obstacleSpeed;
 
-        // PONTUAÇÃO
-
-        if (
-            !obstacle.passed &&
-            obstacle.x + obstacleWidth < fish.x
-        ) {
-
+        if (!obstacle.passed && obstacle.x + obstacleWidth < fish.x) {
+            obstacle.passed = true;
             score++;
 
             scoreElement.textContent = score;
-
-            obstacle.passed = true;
-
-            createScoreParticles();
-
         }
-
     });
-
-    // REMOVENDO OBSTÁCULOS ANTIGOS
 
     obstacles = obstacles.filter(
         obstacle => obstacle.x + obstacleWidth > 0
     );
-
-    // CRIANDO NOVOS OBSTÁCULOS
-
-    if (
-        obstacles.length === 0 ||
-        obstacles[obstacles.length - 1].x < 210
-    ) {
-
-        createObstacle();
-
-    }
-
 }
-
-
-/* =========================
-   MOVIMENTAÇÃO DO PEIXE
-========================= */
-
-function updateFish() {
-
-    fish.velocity += gravity;
-
-    fish.y += fish.velocity;
-
-}
-
-
-/* =========================
-   FAZENDO O PEIXE NADAR
-========================= */
-
-function jump() {
-
-    if (!gameRunning) return;
-
-    fish.velocity = jumpForce;
-
-}
-
-
-/* =========================
-   PARTÍCULAS DE PONTUAÇÃO
-========================= */
-
-function createScoreParticles() {
-
-    for (let i = 0; i < 8; i++) {
-
-        particles.push({
-
-            x: fish.x + 15,
-            y: fish.y + 10,
-
-            velocityX: (Math.random() - 0.5) * 3,
-            velocityY: (Math.random() - 0.5) * 3,
-
-            life: 25
-
-        });
-
-    }
-
-}
-
-
-function updateParticles() {
-
-    particles.forEach(particle => {
-
-        particle.x += particle.velocityX;
-        particle.y += particle.velocityY;
-
-        particle.life--;
-
-    });
-
-    particles = particles.filter(
-        particle => particle.life > 0
-    );
-
-}
-
-
-function drawParticles() {
-
-    ctx.fillStyle = "#ffe66d";
-
-    particles.forEach(particle => {
-
-        ctx.fillRect(
-            particle.x,
-            particle.y,
-            4,
-            4
-        );
-
-    });
-
-}
-
-
-/* =========================
-   DETECTANDO COLISÕES
-========================= */
 
 function checkCollision() {
+    const fishLeft = fish.x - fish.size / 2;
+    const fishRight = fish.x + fish.size / 2;
+    const fishTop = fish.y - fish.size / 2;
+    const fishBottom = fish.y + fish.size / 2;
 
-    // TETO E FUNDO
-
-    if (
-        fish.y < 0 ||
-        fish.y + fish.height > 570
-    ) {
-
-        endGame();
-        return;
-
-    }
-
-    // COLISÃO COM AS ALGAS
-
-    obstacles.forEach(obstacle => {
-
-        if (!gameRunning) return;
-
-        const margin = 4;
-
-        const fishLeft = fish.x + margin;
-        const fishRight = fish.x + fish.width - margin;
-
-        const fishTop = fish.y + margin;
-        const fishBottom = fish.y + fish.height - margin;
-
-        const obstacleRight = obstacle.x + obstacleWidth;
-
+    for (const obstacle of obstacles) {
         const horizontalCollision =
             fishRight > obstacle.x &&
-            fishLeft < obstacleRight;
+            fishLeft < obstacle.x + obstacleWidth;
 
         const verticalCollision =
             fishTop < obstacle.topHeight ||
             fishBottom > obstacle.bottomY;
 
         if (horizontalCollision && verticalCollision) {
-
             endGame();
-
+            return;
         }
-
-    });
-
-}
-
-
-/* =========================
-   DESENHANDO O JOGO
-========================= */
-
-function drawGame() {
-
-    drawBackground();
-
-    drawObstacles();
-
-    drawParticles();
-
-    drawFish();
-
-}
-
-
-/* =========================
-   ATUALIZANDO O JOGO
-========================= */
-
-function gameLoop() {
-
-    if (!gameRunning) return;
-
-    updateFish();
-
-    updateObstacles();
-
-    updateBubbles();
-
-    updateParticles();
-
-    checkCollision();
-
-    drawGame();
-
-    if (gameRunning) {
-
-        animationId = requestAnimationFrame(gameLoop);
-
     }
-
 }
-
-
-/* =========================
-   INICIANDO A PARTIDA
-========================= */
-
-function startGame() {
-
-    cancelAnimationFrame(animationId);
-
-    createFish();
-
-    obstacles = [];
-    particles = [];
-
-    score = 0;
-
-    fishAnimation = 0;
-
-    scoreElement.textContent = score;
-
-    createBubbles();
-
-    createObstacle();
-
-    startScreen.classList.add("hidden");
-
-    gameOverScreen.classList.add("hidden");
-
-    gameRunning = true;
-
-    gameLoop();
-
-}
-
-
-/* =========================
-   FINALIZANDO A PARTIDA
-========================= */
 
 function endGame() {
-
     if (!gameRunning) return;
 
     gameRunning = false;
 
-    cancelAnimationFrame(animationId);
+    if (score > bestScore) {
+        bestScore = score;
+
+        localStorage.setItem("pixelFishBest", bestScore);
+        bestScoreElement.textContent = bestScore;
+    }
 
     finalScoreElement.textContent = score;
 
-    // VERIFICANDO NOVO RECORDE
-
-    if (score > bestScore) {
-
-        bestScore = score;
-
-        try {
-
-            localStorage.setItem(
-                "pixelFishRecord",
-                bestScore
-            );
-
-        } catch (error) {
-
-            console.log("Não foi possível salvar o recorde.");
-
-        }
-
-        bestScoreElement.textContent = bestScore;
-
-        recordMessage.textContent = "NOVO RECORDE!";
-
-    } else {
-
-        recordMessage.textContent = "Continue tentando!";
-
-    }
-
-    gameOverScreen.classList.remove("hidden");
-
-    drawGame();
-
+    gameOverScreen.style.display = "flex";
 }
 
+function gameLoop() {
+    if (!gameRunning) return;
 
-/* =========================
-   CONTROLES DO JOGO
-========================= */
+    frame++;
 
-// BOTÕES
+    drawBackground();
 
+    updateFish();
+    updateObstacles();
+
+    drawObstacles();
+    drawFish();
+
+    checkCollision();
+
+    if (gameRunning) {
+        animationId = requestAnimationFrame(gameLoop);
+    }
+}
+
+// Botão jogar
 startButton.addEventListener("click", startGame);
 
+// Botão reiniciar
 restartButton.addEventListener("click", startGame);
 
-
-// TECLADO
-
-document.addEventListener("keydown", function(event) {
-
-    if (event.code === "Space") {
-
+// Controles pelo teclado
+document.addEventListener("keydown", event => {
+    if (event.code === "Space" || event.code === "ArrowUp") {
         event.preventDefault();
 
         if (gameRunning) {
-
             jump();
-
         }
-
     }
-
 });
 
-
-// CLIQUE E TOQUE NA TELA
-
-canvas.addEventListener("pointerdown", function(event) {
-
+// Controles por toque e clique
+canvas.addEventListener("pointerdown", event => {
     event.preventDefault();
-
     jump();
-
 });
-
-
-/* =========================
-   TELA INICIAL
-========================= */
-
-createFish();
-
-createBubbles();
-
-drawGame();
