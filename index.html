@@ -1,10 +1,13 @@
 
 <!DOCTYPE html>
 <html lang="pt-BR">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
     <title>Pixel Fish</title>
+
     <link rel="stylesheet" href="style.css">
 </head>
 
@@ -12,42 +15,85 @@
 
     <main class="game-container">
 
-        <h1>PIXEL FISH</h1>
+        <header>
+            <h1>PIXEL FISH</h1>
+            <p class="subtitle">A LITTLE ADVENTURE UNDER THE SEA</p>
+        </header>
 
-       <div class="score">
-    Pontuação: <span id="score">0</span>
-</div>
+        <section class="score-container">
 
-<div class="best-score">
-    Recorde: <span id="bestScore">0</span>
-</div>
+            <div class="score-box">
+                <span>PONTUAÇÃO</span>
+                <strong id="score">0</strong>
+            </div>
+
+            <div class="score-box record">
+                <span>RECORDE</span>
+                <strong id="bestScore">0</strong>
+            </div>
+
+        </section>
 
         <div class="game-area">
 
-            <canvas id="gameCanvas" width="400" height="600"></canvas>
+            <canvas
+                id="gameCanvas"
+                width="400"
+                height="600">
+            </canvas>
+
+            <!-- TELA INICIAL -->
 
             <div id="startScreen" class="screen">
+
+                <div class="fish-icon">🐠</div>
+
                 <h2>PIXEL FISH</h2>
-                <p>Prepare-se para mergulhar!</p>
-                <button id="startButton">JOGAR</button>
+
+                <p>
+                    Prepare-se para explorar<br>
+                    as profundezas do oceano!
+                </p>
+
+                <button id="startButton">
+                    JOGAR
+                </button>
+
+                <small>ESPAÇO OU CLIQUE PARA NADAR</small>
+
             </div>
 
+            <!-- TELA DE GAME OVER -->
+
             <div id="gameOverScreen" class="screen hidden">
+
                 <h2>FIM DE JOGO!</h2>
-                <p>Sua pontuação: <span id="finalScore">0</span></p>
-                <button id="restartButton">JOGAR NOVAMENTE</button>
+
+                <p>Sua pontuação:</p>
+
+                <strong id="finalScore">0</strong>
+
+                <p id="recordMessage">
+                    Continue tentando!
+                </p>
+
+                <button id="restartButton">
+                    JOGAR NOVAMENTE
+                </button>
+
             </div>
 
         </div>
 
-        <p class="instructions">
-            Pressione ESPAÇO ou clique para nadar!
-        </p>
+        <footer>
+            <p>DESVIE DOS OBSTÁCULOS E EXPLORE O OCEANO!</p>
+            <p class="version">PIXEL FISH • VERSION 1.1</p>
+        </footer>
 
     </main>
 
     <script src="script.js"></script>
 
 </body>
-</html>
 
+</html>
