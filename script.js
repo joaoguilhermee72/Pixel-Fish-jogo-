@@ -7,6 +7,13 @@ const ctx = canvas.getContext("2d");
 const scoreElement = document.getElementById("score");
 const finalScoreElement = document.getElementById("finalScore");
 
+const bestScoreElement = document.getElementById("bestScore");
+
+// Recuperando o recorde salvo no navegador
+let bestScore = Number(localStorage.getItem("pixelFishRecord")) || 0;
+
+bestScoreElement.textContent = bestScore;
+
 const startScreen = document.getElementById("startScreen");
 const gameOverScreen = document.getElementById("gameOverScreen");
 
