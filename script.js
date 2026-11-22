@@ -26,8 +26,132 @@ const jumpForce = -6.5;
 const obstacleSpeed = 3.6;
 const obstacleGap = 135;
 const obstacleWidth = 55;
-
 const fishSize = 30;
+
+// =================================
+// CONFIGURAÇÕES DE SOM
+// =================================
+
+let soundEnabled = true;
+let audioContext = null;
+
+function initializeAudio() {
+    if (!audioContext) {
+        const AudioContextClass =
+            window.AudioContext || window.webkitAudioContext;
+
+        if (AudioContextClass) {
+            audioContext = new AudioContextClass();
+        }
+    }
+
+    if (audioContext && audioContext.state === "suspended") {
+        audioContext.resume();
+    }
+}
+
+function playSound(type) {
+    if (!soundEnabled) return;
+
+    initializeAudio();
+
+    if (!audioContext) return;
+
+    const now = audioContext.currentTime;
+    const oscillator = audioContext.createOscillator();
+    const gain = audioContext.createGain();
+
+    oscillator.connect(gain);
+    gain.connect(audioContext.destination);
+
+    gain.gain.setValueAtTime(0.0001, now);
+
+    if (type === "jump") {
+        oscillator.type = "sine";
+        oscillator.frequency.setValueAtTime(400, now);
+        oscillator.frequency.exponentialRampToValueAtTime(650, now + 0.09);
+
+        gain.gain.exponentialRampToValueAtTime(0.15, now + 0.015);
+        gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.13);
+
+        oscillator.start(now);
+        oscillator.stop(now + 0.14);
+    }
+
+    else if (type === "score") {
+        oscillator.type = "sine";
+        oscillator.frequency.setValueAtTime(600, now);
+        oscillator.frequency.setValueAtTime(850, now + 0.08);
+        oscillator.frequency.setValueAtTime(1100, now + 0.16);
+
+        gain.gain.exponentialRampToValueAtTime(0.16, now + 0.02);
+        gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.25);
+
+        oscillator.start(now);
+        oscillator.stop(now + 0.26);
+    }
+
+    else if (type === "gameover") {
+        oscillator.type = "triangle";
+        oscillator.frequency.setValueAtTime(450, now);
+        oscillator.frequency.exponentialRampToValueAtTime(120, now + 0.45);
+
+        gain.gain.exponentialRampToValueAtTime(0.18, now + 0.02);
+        gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.5);
+
+        oscillator.start(now);
+        oscillator.stop(now + 0.52);
+    }
+
+    else if (type === "start") {
+        oscillator.type = "sine";
+        oscillator.frequency.setValueAtTime(500, now);
+        oscillator.frequency.setValueAtTime(750, now + 0.1);
+
+        gain.gain.exponentialRampToValueAtTime(0.12, now + 0.02);
+        gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.2);
+
+        oscillator.start(now);
+        oscillator.stop(now + 0.21);
+    }
+}
+
+// Botão de ligar/desligar som
+const soundButton = document.createElement("button");
+
+soundButton.textContent = "🔊 SOM: ON";
+
+soundButton.style.position = "fixed";
+soundButton.style.top = "15px";
+soundButton.style.right = "15px";
+soundButton.style.zIndex = "9999";
+soundButton.style.padding = "10px 15px";
+soundButton.style.border = "2px solid white";
+soundButton.style.borderRadius = "10px";
+soundButton.style.background = "#267d53";
+soundButton.style.color = "white";
+soundButton.style.fontWeight = "bold";
+soundButton.style.cursor = "pointer";
+soundButton.style.fontSize = "13px";
+
+document.body.appendChild(soundButton);
+
+soundButton.addEventListener("click", () => {
+    soundEnabled = !soundEnabled;
+
+    soundButton.textContent = soundEnabled
+        ? "🔊 SOM: ON"
+        : "🔇 SOM: OFF";
+
+    if (soundEnabled) {
+        initializeAudio();
+        playSound("start");
+    }
+});
+
+// =================================
+// CONFIGURAÇÕES DO JOGO
+// =================================
 
 bestScoreElement.textContent = bestScore;
 
@@ -43,7 +167,11 @@ function createFish() {
 function startGame() {
     if (animationId !== null) {
         cancelAnimationFrame(animationId);
+        animationId = null;
     }
+
+    initializeAudio();
+    playSound("start");
 
     fish = createFish();
     obstacles = [];
@@ -65,7 +193,12 @@ function jump() {
     if (!gameRunning) return;
 
     fish.velocity = jumpForce;
+    playSound("jump");
 }
+
+// =================================
+// OBSTÁCULOS
+// =================================
 
 function createObstacle() {
     const minHeight = 50;
@@ -82,11 +215,14 @@ function createObstacle() {
     });
 }
 
+// =================================
+// DESENHO DO FUNDO
+// =================================
+
 function drawBackground() {
     ctx.fillStyle = "#75d5e8";
     ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-    // Bolhas
     for (let i = 0; i < 12; i++) {
         const x = (i * 97 + frame * 0.4) % canvas.width;
         const y = (i * 83 + frame * 0.7) % canvas.height;
@@ -97,6 +233,10 @@ function drawBackground() {
         ctx.fill();
     }
 }
+
+// =================================
+// DESENHO DO PEIXE
+// =================================
 
 function drawFish() {
     ctx.save();
@@ -136,6 +276,10 @@ function drawFish() {
 
     ctx.restore();
 }
+
+// =================================
+// DESENHO DOS OBSTÁCULOS
+// =================================
 
 function drawObstacles() {
     obstacles.forEach(obstacle => {
@@ -177,6 +321,10 @@ function drawObstacles() {
     });
 }
 
+// =================================
+// ATUALIZAÇÃO DO PEIXE
+// =================================
+
 function updateFish() {
     fish.velocity += gravity;
     fish.y += fish.velocity;
@@ -188,6 +336,10 @@ function updateFish() {
         endGame();
     }
 }
+
+// =================================
+// ATUALIZAÇÃO DOS OBSTÁCULOS
+// =================================
 
 function updateObstacles() {
     if (frame % 95 === 0) {
@@ -202,6 +354,8 @@ function updateObstacles() {
             score++;
 
             scoreElement.textContent = score;
+
+            playSound("score");
         }
     });
 
@@ -209,6 +363,10 @@ function updateObstacles() {
         obstacle => obstacle.x + obstacleWidth > 0
     );
 }
+
+// =================================
+// COLISÃO
+// =================================
 
 function checkCollision() {
     const fishLeft = fish.x - fish.size / 2;
@@ -232,10 +390,16 @@ function checkCollision() {
     }
 }
 
+// =================================
+// FIM DE JOGO
+// =================================
+
 function endGame() {
     if (!gameRunning) return;
 
     gameRunning = false;
+
+    playSound("gameover");
 
     if (score > bestScore) {
         bestScore = score;
@@ -249,6 +413,10 @@ function endGame() {
     gameOverScreen.style.display = "flex";
 }
 
+// =================================
+// LOOP PRINCIPAL
+// =================================
+
 function gameLoop() {
     if (!gameRunning) return;
 
@@ -257,6 +425,9 @@ function gameLoop() {
     drawBackground();
 
     updateFish();
+
+    if (!gameRunning) return;
+
     updateObstacles();
 
     drawObstacles();
@@ -269,13 +440,14 @@ function gameLoop() {
     }
 }
 
-// Botão jogar
+// =================================
+// CONTROLES
+// =================================
+
 startButton.addEventListener("click", startGame);
 
-// Botão reiniciar
 restartButton.addEventListener("click", startGame);
 
-// Controles pelo teclado
 document.addEventListener("keydown", event => {
     if (event.code === "Space" || event.code === "ArrowUp") {
         event.preventDefault();
@@ -286,7 +458,6 @@ document.addEventListener("keydown", event => {
     }
 });
 
-// Controles por toque e clique
 canvas.addEventListener("pointerdown", event => {
     event.preventDefault();
     jump();
